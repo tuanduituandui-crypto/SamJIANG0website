@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <!-- 核心响应式配置：强制按设备宽度显示，禁止用户缩放 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>姜成卓 - 个人網站</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    
+    <!-- 配置Tailwind：增加更细粒度的响应式断点 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                screens: {
+                    'xs': '360px',   // 超小屏幕（小手机）
+                    'sm': '640px',   // 小屏幕（手机横屏）
+                    'md': '768px',   // 中等屏幕（平板竖屏）
+                    'lg': '1024px',  // 大屏幕（平板横屏/小电脑）
+                    'xl': '1280px',  // 超大屏幕（电脑）
+                },
+                extend: {
+                    colors: {
+                        primary: '#3B82F6',
+                        secondary: '#10B981',
+                        accent: '#8B5CF6',
+                        dark: '#1E293B',
+                        light: '#F8FAFC'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        display: ['Montserrat', 'sans-serif']
+                    },
+                }
+            }
+        }
+    </script>
+
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .text-gradient {
+                background-clip: text;
+                -webkit-background-clip: text;
+                color: transparent;
+            }
+            .bg-blur {
+                backdrop-filter: blur(8px);
+            }
+            .transition-custom {
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            .file-drop-active {
+                @apply border-primary bg-primary/5;
+            }
+            .gallery-item {
+                @apply relative overflow-hidden rounded-lg shadow-md transition-custom hover:shadow-xl;
+            }
+            .gallery-overlay {
+                @apply absolute inset-0 bg-dark/60 opacity-0 transition-custom flex items-center justify-center hover:opacity-100;
+            }
+            .modal-backdrop {
+                @apply fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300;
+            }
+            .modal-backdrop.active {
+                @apply opacity-100 pointer-events-auto;
+            }
+            .modal-content {
+                @apply max-w-5xl w-full max-h-[90vh] bg-white rounded-lg overflow-hidden transform scale-95 transition-transform duration-300;
+            }
+            .modal-backdrop.active .modal-content {
+                @apply scale-100;
+            }
+            .social-qrcode {
+                @apply absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-40 h-40 bg-white p-2 rounded-lg shadow-lg opacity-0 pointer-events-none transition-all duration-300 z-50;
+                /* 超小屏幕调整二维码大小 */
+                @apply xs:w-32 xs:h-32;
+            }
+            .social-item:hover .social-qrcode {
+                @apply opacity-100 pointer-events-auto;
+            }
+        }
+    </style>
+
+    <!-- 引入Google字体 -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="font-sans text-dark bg-light">
+    <!-- 导航栏：响应式背景和高度调整 -->
+    <nav id="navbar" class="fixed w-full z-40 transition-custom bg-dark/80 bg-blur py-3 xs:py-2">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center">
+                <!-- 网站标题：响应式字体大小 -->
+                <div class="text-white font-display font-bold text-xl xs:text-lg md:text-2xl">
+                    JCZ的網站
+                </div>
+                
+                <!-- 桌面导航：中等屏幕以上显示 -->
+                <div class="hidden md:flex space-x-4 sm:space-x-6 lg:space-x-8">
+                    <a href="#home" class="nav-link text-white hover:text-primary transition-custom text-sm sm:text-base">首頁</a>
+                    <a href="#about" class="nav-link text-white hover:text-primary transition-custom text-sm sm:text-base">關於我</a>
+                    <a href="#portfolio" class="nav-link text-white hover:text-primary transition-custom text-sm sm:text-base">作品集</a>
+                    <a href="#gallery" class="nav-link text-white hover:text-primary transition-custom text-sm sm:text-base">相片</a>
+                    <a href="#documents" class="nav-link text-white hover:text-primary transition-custom text-sm sm:text-base">文件下載</a>
+                    <a href="#contact" class="nav-link text-white hover:text-primary transition-custom text-sm sm:text-base">聯絡我</a>
+                    <button id="admin-btn" class="text-white hover:text-primary transition-custom text-sm sm:text-base">
+                        <i class="fa fa-cog mr-1"></i> 管理
+                    </button>
+                </div>
+                
+                <!-- 移动端菜单按钮：中等屏幕以下显示 -->
+                <button id="mobile-menu-btn" class="md:hidden text-white focus:outline-none">
+                    <i class="fa fa-bars text-xl xs:text-lg"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- 移动端导航菜单：优化小屏幕显示 -->
+        <div id="mobile-menu" class="md:hidden hidden bg-dark/95 bg-blur">
+            <div class="container mx-auto px-4 py-3 space-y-2 xs:space-y-3">
+                <a href="#home" class="block py-2 text-white hover:text-primary transition-custom text-sm xs:text-base">首頁</a>
+                <a href="#about" class="block py-2 text-white hover:text-primary transition-custom text-sm xs:text-base">關於我</a>
+                <a href="#portfolio" class="block py-2 text-white hover:text-primary transition-custom text-sm xs:text-base">作品集</a>
+                <a href="#gallery" class="block py-2 text-white hover:text-primary transition-custom text-sm xs:text-base">相片</a>
+                <a href="#documents" class="block py-2 text-white hover:text-primary transition-custom text-sm xs:text-base">文件下載</a>
+                <a href="#contact" class="block py-2 text-white hover:text-primary transition-custom text-sm xs:text-base">聯絡我</a>
+                <button id="mobile-admin-btn" class="w-full text-left py-2 text-white hover:text-primary transition-custom text-sm xs:text-base">
+                    <i class="fa fa-cog mr-1"></i> 管理
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 图片放大模态框：适配小屏幕 -->
+    <div id="image-modal" class="modal-backdrop">
+        <div class="modal-content">
+            <button id="close-modal" class="absolute top-2 xs:top-4 right-2 xs:right-4 bg-black/50 text-white p-1 xs:p-2 rounded-full z-10 hover:bg-black/70 transition-custom">
+                <i class="fa fa-times text-sm xs:text-base"></i>
+            </button>
+            <img id="modal-image" src="" alt="放大查看" class="w-full h-full object-contain">
+        </div>
+    </div>
+
+    <!-- 主内容区 -->
+    <main id="main-content" class="min-h-screen">
+        <!-- 首页/英雄区：优化全屏幕适配 -->
+        <section id="home" class="min-h-screen flex items-center relative overflow-hidden">
+            <div class="absolute inset-0 z-0">
+                <div id="hero-bg" class="absolute inset-0 bg-cover bg-center bg-no-repeat" 
+                     style="background-image: url('https://picsum.photos/id/1005/1920/1080'); filter: brightness(0.6);
+                            background-position: 50% 30%;"> <!-- 调整背景图位置，避免关键内容被截断 -->
+                </div>
+            </div>
+            
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10 pt-16"> <!-- 增加顶部内边距，避免被导航栏遮挡 -->
+                <div class="max-w-3xl">
+                    <!-- 标题：超小屏幕到超大屏幕的字体自适应 -->
+                    <h1 id="hero-title" class="text-[clamp(2rem,6vw,5rem)] font-display font-bold text-white leading-tight mb-4 xs:mb-6 animate-fade-in">
+                        你好，我係<span class="text-primary">姜成卓</span>
+                    </h1>
+                    <p class="text-[clamp(1rem,3vw,1.8rem)] font-display text-white/90 mb-4 xs:mb-6">或者你也可以叫我 SAM</p>
+                    <p id="hero-subtitle" class="text-[clamp(0.9rem,2vw,1.2rem)] xs:text-[clamp(1rem,2.5vw,1.5rem)] text-white/90 mb-6 xs:mb-8 max-w-2xl">
+                        歡迎來到我的個人網站，這裏展示了我的簡歷、作品和生活細節。
+                    </p>
+                    <!-- 按钮组：小屏幕垂直排列，大屏幕水平排列 -->
+                    <div class="flex flex-col sm:flex-row gap-3 xs:gap-4">
+                        <a href="#about" class="px-6 xs:px-8 py-2 xs:py-3 bg-primary hover:bg-primary/90 text-white font-medium rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-custom text-center">
+                            瞭解更多
+                        </a>
+                        <a href="#portfolio" class="px-6 xs:px-8 py-2 xs:py-3 bg-white/10 hover:bg-white/20 backdrop-blur text-white font-medium rounded-lg border border-white/30 hover:shadow-lg transform hover:-translate-y-1 transition-custom text-center">
+                            查看作品
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 向下滚动提示：小屏幕调整大小和位置 -->
+            <div class="absolute bottom-6 xs:bottom-10 left-1/2 transform -translate-x-1/2 text-white animate-bounce">
+                <a href="#about" class="flex flex-col items-center">
+                    <span class="mb-1 xs:mb-2 text-xs xs:text-sm">向下滚动</span>
+                    <i class="fa fa-chevron-down text-sm xs:text-base"></i>
+                </a>
+            </div>
+        </section>
+
+        <!-- 关于/简历部分：优化网格布局响应式 -->
+        <section id="about" class="py-12 xs:py-16 lg:py-20 bg-white">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-10 xs:mb-12 lg:mb-16">
+                    <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-display font-bold mb-3 xs:mb-4">关于我</h2>
+                    <div class="w-16 xs:w-20 h-1 bg-primary mx-auto"></div>
+                </div>
+                
+                <!-- 布局：小屏幕上下排列，大屏幕左右排列 -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 xs:gap-12 items-center">
+                    <div class="order-2 lg:order-1">
+                        <div id="about-content" class="space-y-4 xs:space-y-6">
+                            <h3 class="text-xl xs:text-2xl font-display font-semibold text-dark">个人简介</h3>
+                            <p id="about-bio" class="text-gray-600 leading-relaxed text-sm xs:text-base">
+                                我是一个有着工科背景的文科生，因为对文学的热爱和对现实帮助他人的渴望选择了从工科转到文科，在这一过程中我学了不少新的知识，并逐渐追求更全面的学科性发展。我力求在生活、学习和工作中找到平衡點並不断探寻其中的乐趣。
+                            </p>
+                            
+                            <h3 class="text-xl xs:text-2xl font-display font-semibold text-dark">教育背景</h3>
+                            <div id="education-container" class="space-y-3 xs:space-y-4">
+                                <div class="bg-gray-50 p-3 xs:p-4 rounded-lg shadow-sm">
+                                    <div class="flex flex-col sm:flex-row justify-between items-start">
+                                        <div>
+                                            <h4 class="font-semibold text-base xs:text-lg">Lingnan University</h4>
+                                            <p class="text-gray-500 text-sm">Master of Social Sciences in Comparative Public Administration (CPA)</p>
+                                        </div>
+                                        <span class="bg-gray-200 px-2 xs:px-3 py-1 rounded-full text-xs xs:text-sm mt-2 sm:mt-0">2025</span>
+                                    </div>
+                                </div>
+                                <div class="bg-gray-50 p-3 xs:p-4 rounded-lg shadow-sm">
+                                    <div class="flex flex-col sm:flex-row justify-between items-start">
+                                        <div>
+                                            <h4 class="font-semibold text-base xs:text-lg">Henan University of Science and Technology</h4>
+                                            <p class="text-gray-500 text-sm">Bachelor of Engineering– Major in Automation</p>
+                                        </div>
+                                        <span class="bg-gray-200 px-2 xs:px-3 py-1 rounded-full text-xs xs:text-sm mt-2 sm:mt-0">2023</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <h3 class="text-xl xs:text-2xl font-display font-semibold text-dark">工作經歷</h3>
+                            <div id="experience-container" class="space-y-3 xs:space-y-4">
+                                <div class="bg-gray-50 p-3 xs:p-4 rounded-lg shadow-sm">
+                                    <div class="flex flex-col sm:flex-row justify-between items-start">
+                                        <div>
+                                            <h4 class="font-semibold text-base xs:text-lg">Office Assistant - Hong Kong Center for Construction Robotics (HKCRC)</h4>
+                                            <p class="text-gray-500 text-sm">Using Ps/AI and poster design apps to create promotional materials for events, optimized publicity content based on social media.</p>
+                                        </div>
+                                        <span class="bg-gray-200 px-2 xs:px-3 py-1 rounded-full text-xs xs:text-sm mt-2 sm:mt-0">2025</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 个人照片：响应式大小调整 -->
+                    <div class="order-1 lg:order-2 flex justify-center">
+                        <div class="relative">
+                            <div id="profile-picture-container" class="w-56 h-56 xs:w-64 xs:h-64 sm:w-72 sm:h-72 lg:w-80 lg:h-80 rounded-full overflow-hidden border-4 border-primary shadow-xl">
+                                <img id="profile-picture" 
+                                     src="https://victorious-orange-n1m0xlolo6.edgeone.app/cj.jpg" 
+                                     alt="个人照片" 
+                                     class="w-full h-full object-cover cursor-pointer" 
+                                     data-src="https://victorious-orange-n1m0xlolo6.edgeone.app/cj.jpg"
+                                     loading="lazy">
+                            </div>
+                            <!-- 年龄标签：小屏幕调整大小 -->
+                            <div class="absolute -bottom-3 -right-3 xs:-bottom-4 xs:-right-4 bg-secondary text-white p-2 xs:p-4 rounded-lg shadow-lg">
+                                <div id="age-display" class="text-xl xs:text-2xl font-bold">24</div>
+                                <div class="text-xs xs:text-sm">年齡</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 技能部分：优化网格列数响应式 -->
+                <div class="mt-12 xs:mt-16 lg:mt-20">
+                    <h3 class="text-xl xs:text-2xl font-display font-semibold text-dark mb-6 xs:mb-8 text-center">我的技能</h3>
+                    <div id="skills-container" class="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 gap-4 xs:gap-6">
+                        <div class="bg-gray-50 p-4 xs:p-6 rounded-lg shadow-sm hover:shadow-md transition-custom">
+                            <div class="flex items-center mb-2 xs:mb-3">
+                                <i class="fa fa-adobe text-primary text-lg xs:text-xl mr-2 xs:mr-3"></i>
+                                <h4 class="font-semibold text-sm xs:text-base">Photoshop/Illustrator</h4>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                <div class="bg-primary h-2.5 rounded-full" style="width: 85%"></div>
+                            </div>
+                        </div>
+                        <div class="bg-gray-50 p-4 xs:p-6 rounded-lg shadow-sm hover:shadow-md transition-custom">
+                            <div class="flex items-center mb-2 xs:mb-3">
+                                <i class="fa fa-paint-brush text-primary text-lg xs:text-xl mr-2 xs:mr-3"></i>
+                                <h4 class="font-semibold text-sm xs:text-base">AI設計</h4>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                <div class="bg-primary h-2.5 rounded-full" style="width: 80%"></div>
+                            </div>
+                        </div>
+                        <div class="bg-gray-50 p-4 xs:p-6 rounded-lg shadow-sm hover:shadow-md transition-custom">
+                            <div class="flex items-center mb-2 xs:mb-3">
+                                <i class="fa fa-bullhorn text-primary text-lg xs:text-xl mr-2 xs:mr-3"></i>
+                                <h4 class="font-semibold text-sm xs:text-base">海報設計</h4>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                <div class="bg-primary h-2.5 rounded-full" style="width: 90%"></div>
+                            </div>
+                        </div>
+                        <div class="bg-gray-50 p-4 xs:p-6 rounded-lg shadow-sm hover:shadow-md transition-custom">
+                            <div class="flex items-center mb-2 xs:mb-3">
+                                <i class="fa fa-share-alt text-primary text-lg xs:text-xl mr-2 xs:mr-3"></i>
+                                <h4 class="font-semibold text-sm xs:text-base">社交媒體宣傳</h4>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                <div class="bg-primary h-2.5 rounded-full" style="width: 85%"></div>
+                            </div>
+                        </div>
+                        <div class="bg-gray-50 p-4 xs:p-6 rounded-lg shadow-sm hover:shadow-md transition-custom">
+                            <div class="flex items-center mb-2 xs:mb-3">
+                                <i class="fa fa-file-image-o text-primary text-lg xs:text-xl mr-2 xs:mr-3"></i>
+                                <h4 class="font-semibold text-sm xs:text-base">活動宣傳材料製作</h4>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                <div class="bg-primary h-2.5 rounded-full" style="width: 88%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 作品集部分：优化卡片布局响应式 -->
+        <section id="portfolio" class="py-12 xs:py-16 lg:py-20 bg-gray-50">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-10 xs:mb-12 lg:mb-16">
+                    <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-display font-bold mb-3 xs:mb-4">我的作品集</h2>
+                    <p class="text-gray-600 max-w-2xl mx-auto text-sm xs:text-base">以下是我設計的一些海報和宣傳材料，展示了我的設計能力和創意</p>
+                    <div class="w-16 xs:w-20 h-1 bg-primary mx-auto mt-3 xs:mt-4"></div>
+                </div>
+                
+                <!-- 作品网格：根据屏幕宽度自动调整列数 -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 xs:gap-8">
+                    <!-- 作品1 -->
+                    <div class="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-custom group">
+                        <div class="relative overflow-hidden">
+                            <img src="https://exact-coffee-9so42paxrq.edgeone.app/%E6%B5%B7%E5%A0%B1.jpg" 
+                                 alt="海報設計" 
+                                 class="w-full h-48 xs:h-56 sm:h-64 object-cover transition-custom group-hover:scale-105 cursor-pointer" 
+                                 data-src="https://exact-coffee-9so42paxrq.edgeone.app/%E6%B5%B7%E5%A0%B1.jpg"
+                                 loading="lazy">
+                            <div class="absolute top-3 right-3 bg-primary text-white text-xs px-2 py-1 rounded-full">
+                                海報設計
+                            </div>
+                        </div>
+                        <div class="p-4 xs:p-6">
+                            <h3 class="text-base xs:text-xl font-semibold mb-2">戶外活動宣傳海報</h3>
+                            <p class="text-gray-600 mb-3 xs:mb-4 text-sm">爲大學戶外活動設計的宣傳海報，結合了動漫和動物風格 XD</p>
+                            <a href="#" class="inline-flex items-center text-primary font-medium hover:underline text-sm">
+                                查看詳情 <i class="fa fa-arrow-right ml-2"></i>
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- 作品2-6结构相同，已做响应式优化，此处省略 -->
+                    <!-- 作品2 -->
+                    <div class="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-custom group">
+                        <div class="relative overflow-hidden">
+                            <img src="https://negative-lavender-vdxa1duwbd.edgeone.app/b%E7%AB%99.png" 
+                                 alt="社交媒體宣傳圖" 
+                                 class="w-full h-48 xs:h-56 sm:h-64 object-cover transition-custom group-hover:scale-105 cursor-pointer" 
+                                 data-src="https://negative-lavender-vdxa1duwbd.edgeone.app/b%E7%AB%99.png"
+                                 loading="lazy">
+                            <div class="absolute top-3 right-3 bg-accent text-white text-xs px-2 py-1 rounded-full">
+                                社交媒體經營
+                            </div>
+                        </div>
+                        <div class="p-4 xs:p-6">
+                            <h3 class="text-base xs:text-xl font-semibold mb-2">閒暇之餘經營B站</h3>
+                            <p class="text-gray-600 mb-3 xs:mb-4 text-sm">主要從事vlog製作和游戲解説，有豐富的視頻剪輯經驗</p>
+                            <a href="#" class="inline-flex items-center text-primary font-medium hover:underline text-sm">
+                                查看詳情 <i class="fa fa-arrow-right ml-2"></i>
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- 作品3 -->
+                    <div class="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-custom group">
+                        <div class="relative overflow-hidden">
+                            <img src="https://stale-purple-qub2kk6vzb.edgeone.app/%E6%89%8B%E5%86%8A.png" 
+                                 alt="活動手冊設計" 
+                                 class="w-full h-48 xs:h-56 sm:h-64 object-cover transition-custom group-hover:scale-105 cursor-pointer" 
+                                 data-src="https://stale-purple-qub2kk6vzb.edgeone.app/%E6%89%8B%E5%86%8A.png"
+                                 loading="lazy">
+                            <div class="absolute top-3 right-3 bg-secondary text-white text-xs px-2 py-1 rounded-full">
+                                印刷設計
+                            </div>
+                        </div>
+                        <div class="p-4 xs:p-6">
+                            <h3 class="text-base xs:text-xl font-semibold mb-2">活動指導手冊設計</h3>
+                            <p class="text-gray-600 mb-3 xs:mb-4 text-sm">為灣區競賽夏令營設計的指導手冊，包含封面和內頁排版設計</p>
+                            <a href="#" class="inline-flex items-center text-primary font-medium hover:underline text-sm">
+                                查看詳情 <i class="fa fa-arrow-right ml-2"></i>
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- 作品4 -->
+                    <div class="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-custom group">
+                        <div class="relative overflow-hidden">
+                            <img src="https://diverse-harlequin-nqloruthy0.edgeone.app/AI%E8%BC%94%E5%8A%A9.png" 
+                                 alt="AI輔助生成艺术作品" 
+                                 class="w-full h-48 xs:h-56 sm:h-64 object-cover transition-custom group-hover:scale-105 cursor-pointer" 
+                                 data-src="https://diverse-harlequin-nqloruthy0.edgeone.app/AI%E8%BC%94%E5%8A%A9.png"
+                                 loading="lazy">
+                            <div class="absolute top-3 right-3 bg-accent text-white text-xs px-2 py-1 rounded-full">AI设计</div>
+                        </div>
+                        <div class="p-4 xs:p-6">
+                            <h3 class="text-base xs:text-xl font-semibold mb-2">靈活使用AI辅助進行代碼檢查或生圖</h3>
+                            <p class="text-gray-600 mb-3 xs:mb-4 text-sm">靈活運用AI工具創作更多有創意的圖片，我很樂意探索AI與設計的結合</p>
+                            <a href="#" class="inline-flex items-center text-primary font-medium hover:underline text-sm">
+                                查看詳情 <i class="fa fa-arrow-right ml-2"></i>
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- 作品5 -->
+                    <div class="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-custom group">
+                        <div class="relative overflow-hidden">
+                            <img src="https://overall-amaranth-fykcm2hphc.edgeone.app/M9%E6%B8%B2%E6%9F%93.png" 
+                                 alt="建模設計" 
+                                 class="w-full h-48 xs:h-56 sm:h-64 object-cover transition-custom group-hover:scale-105 cursor-pointer" 
+                                 data-src="https://overall-amaranth-fykcm2hphc.edgeone.app/M9%E6%B8%B2%E6%9F%93.png"
+                                 loading="lazy">
+                            <div class="absolute top-3 right-3 bg-primary text-white text-xs px-2 py-1 rounded-full">建模设计</div>
+                        </div>
+                        <div class="p-4 xs:p-6">
+                            <h3 class="text-base xs:text-xl font-semibold mb-2">Blender建模设计</h3>
+                            <p class="text-gray-600 mb-3 xs:mb-4 text-sm">除了簡單的立體logo外、還能熟練進行展廳或部分物體細節的建模</p>
+                            <a href="#" class="inline-flex items-center text-primary font-medium hover:underline text-sm">
+                                查看詳情 <i class="fa fa-arrow-right ml-2"></i>
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- 作品6 -->
+                    <div class="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-custom group">
+                        <div class="relative overflow-hidden">
+                            <img src="https://poor-purple-wjd5xdwyjl.edgeone.app/logo.png" 
+                                 alt="logo排版設計" 
+                                 class="w-full h-48 xs:h-56 sm:h-64 object-cover transition-custom group-hover:scale-105 cursor-pointer" 
+                                 data-src="https://poor-purple-wjd5xdwyjl.edgeone.app/logo.png"
+                                 loading="lazy">
+                            <div class="absolute top-3 right-3 bg-secondary text-white text-xs px-2 py-1 rounded-full">Logo设计</div>
+                        </div>
+                        <div class="p-4 xs:p-6">
+                            <h3 class="text-base xs:text-xl font-semibold mb-2">LOGO排版設計</h3>
+                            <p class="text-gray-600 mb-3 xs:mb-4 text-sm">實習時曾參與LOGO排版設計、LOGO的修改與重新裝飾等工作</p>
+                            <a href="#" class="inline-flex items-center text-primary font-medium hover:underline text-sm">
+                                查看詳情 <i class="fa fa-arrow-right ml-2"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 照片部分：优化图片网格响应式 -->
+        <section id="gallery" class="py-12 xs:py-16 lg:py-20 bg-white">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-10 xs:mb-12 lg:mb-16">
+                    <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-display font-bold mb-3 xs:mb-4">我的照片</h2>
+                    <p class="text-gray-600 max-w-2xl mx-auto text-sm xs:text-base">記錄生活中的美好瞬間，旅行、學習和日常點滴</p>
+                    <div class="w-16 xs:w-20 h-1 bg-primary mx-auto mt-3 xs:mt-4"></div>
+                </div>
+                
+                <!-- 照片网格：小屏幕1列，中屏幕2列，大屏幕3列 -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 xs:gap-4">
+                    <!-- 照片1-6结构相同，已做响应式优化 -->
+                    <!-- 照片1 -->
+                    <div class="gallery-item">
+                        <img src="https://controversial-lavender-le9zoc8zyx.edgeone.app/1%20.jpg" 
+                             alt="风景照" 
+                             class="w-full h-48 xs:h-56 sm:h-64 object-cover cursor-pointer" 
+                             data-src="https://controversial-lavender-le9zoc8zyx.edgeone.app/1%20.jpg"
+                             loading="lazy">
+                        <div class="gallery-overlay">
+                            <button class="bg-white text-primary p-2 rounded-full">
+                                <i class="fa fa-search-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- 照片2 -->
+                    <div class="gallery-item">
+                        <img src="https://blank-copper-3xhz5f3igz.edgeone.app/2%20.jpg" 
+                             alt="自然照" 
+                             class="w-full h-48 xs:h-56 sm:h-64 object-cover cursor-pointer" 
+                             data-src="https://blank-copper-3xhz5f3igz.edgeone.app/2%20.jpg"
+                             loading="lazy">
+                        <div class="gallery-overlay">
+                            <button class="bg-white text-primary p-2 rounded-full">
+                                <i class="fa fa-search-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- 照片3 -->
+                    <div class="gallery-item">
+                        <img src="https://intellectual-indigo-yxkvaqhjp7.edgeone.app/3%20.jpg" 
+                             alt="自然照" 
+                             class="w-full h-48 xs:h-56 sm:h-64 object-cover cursor-pointer" 
+                             data-src="https://intellectual-indigo-yxkvaqhjp7.edgeone.app/3%20.jpg"
+                             loading="lazy">
+                        <div class="gallery-overlay">
+                            <button class="bg-white text-primary p-2 rounded-full">
+                                <i class="fa fa-search-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- 照片4 -->
+                    <div class="gallery-item">
+                        <img src="https://brave-crimson-wf45biuseg.edgeone.app/4.jpg" 
+                             alt="故宮照" 
+                             class="w-full h-48 xs:h-56 sm:h-64 object-cover cursor-pointer" 
+                             data-src="https://brave-crimson-wf45biuseg.edgeone.app/4.jpg"
+                             loading="lazy">
+                        <div class="gallery-overlay">
+                            <button class="bg-white text-primary p-2 rounded-full">
+                                <i class="fa fa-search-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- 照片5 -->
+                    <div class="gallery-item">
+                        <img src="https://frail-tomato-soi6u0ps8q.edgeone.app/5.jpg" 
+                             alt="火燒夕陽照" 
+                             class="w-full h-48 xs:h-56 sm:h-64 object-cover cursor-pointer" 
+                             data-src="https://frail-tomato-soi6u0ps8q.edgeone.app/5.jpg"
+                             loading="lazy">
+                        <div class="gallery-overlay">
+                            <button class="bg-white text-primary p-2 rounded-full">
+                                <i class="fa fa-search-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- 照片6 -->
+                    <div class="gallery-item">
+                        <img src="https://feminist-chocolate-eqabvfhxen.edgeone.app/6.jpg" 
+                             alt="中國海軍83號艦照" 
+                             class="w-full h-48 xs:h-56 sm:h-64 object-cover cursor-pointer" 
+                             data-src="https://feminist-chocolate-eqabvfhxen.edgeone.app/6.jpg"
+                             loading="lazy">
+                        <div class="gallery-overlay">
+                            <button class="bg-white text-primary p-2 rounded-full">
+                                <i class="fa fa-search-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 查看更多按钮：响应式大小 -->
+                <div class="text-center mt-8 xs:mt-12">
+                    <button id="load-more-photos" class="px-5 xs:px-6 py-2 xs:py-3 bg-primary hover:bg-primary/90 text-white font-medium rounded-lg shadow hover:shadow-md transition-custom text-sm xs:text-base">
+                        <i class="fa fa-picture-o mr-2"></i>查看更多相片
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 文件下载页面：优化布局响应式 -->
+        <section id="documents" class="py-12 xs:py-16 lg:py-20 bg-gray-50 min-h-screen">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-10 xs:mb-12 lg:mb-16">
+                    <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-display font-bold mb-3 xs:mb-4">我的簡歷和作品集</h2>
+                    <p class="text-gray-600 max-w-2xl mx-auto text-sm xs:text-base">以下文件均可下載</p>
+                    <div class="w-16 xs:w-20 h-1 bg-primary mx-auto mt-3 xs:mt-4"></div>
+                </div>
+                
+                <!-- 已上传文件列表：优化小屏幕显示 -->
+                <div class="max-w-4xl mx-auto">
+                    <h3 class="text-lg xs:text-xl font-semibold mb-5 xs:mb-6 flex items-center">
+                        <i class="fa fa-file-text-o text-primary mr-2"></i>可下載文件
+                    </h3>
+                    
+                    <div id="uploaded-files-list" class="space-y-3 xs:space-y-4">
+                        <!-- 预加载的PDF文件1 -->
+                        <div class="bg-white p-3 xs:p-4 rounded-lg shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                            <div class="flex items-start mb-2 sm:mb-0">
+                                <div class="bg-red-100 p-2 xs:p-3 rounded-lg text-red-500 mr-3 xs:mr-4">
+                                    <i class="fa fa-file-pdf-o text-xl"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-medium text-base">個人簡歷</h4>
+                                    <p class="text-gray-500 text-xs xs:text-sm">CVsam.pdf</p>
+                                    <p class="text-gray-500 text-xs xs:text-sm mt-1">大小: 1.2MB | 上傳日期: 2025-10-15</p>
+                                </div>
+                            </div>
+                            <a href="CVsam.pdf" target="_blank" class="px-3 xs:px-4 py-1.5 xs:py-2 bg-primary hover:bg-primary/90 text-white font-medium rounded-lg shadow hover:shadow-md transition-custom text-sm mt-2 sm:mt-0">
+                                <i class="fa fa-download mr-1 xs:mr-2"></i>下載
+                            </a>
+                        </div>
+                        
+                        <!-- 预加载的PDF文件2 -->
+                        <div class="bg-white p-3 xs:p-4 rounded-lg shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                            <div class="flex items-start mb-2 sm:mb-0">
+                                <div class="bg-red-100 p-2 xs:p-3 rounded-lg text-red-500 mr-3 xs:mr-4">
+                                    <i class="fa fa-file-pdf-o text-xl"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-medium text-base">作品集</h4>
+                                    <p class="text-gray-500 text-xs xs:text-sm">Portfolio.pdf</p>
+                                    <p class="text-gray-500 text-xs xs:text-sm mt-1">大小: 2.8MB | 上傳日期: 2025-10-15</p>
+                                </div>
+                            </div>
+                            <a href="Portfolio.pdf" target="_blank" class="px-3 xs:px-4 py-1.5 xs:py-2 bg-primary hover:bg-primary/90 text-white font-medium rounded-lg shadow hover:shadow-md transition-custom text-sm mt-2 sm:mt-0">
+                                <i class="fa fa-download mr-1 xs:mr-2"></i>下載
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 联系部分：优化表单和联系信息布局 -->
+        <section id="contact" class="py-12 xs:py-16 lg:py-20 bg-white">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-10 xs:mb-12 lg:mb-16">
+                    <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-display font-bold mb-3 xs:mb-4">聯絡我</h2>
+                    <p class="text-gray-600 max-w-2xl mx-auto text-sm xs:text-base">如果您希望與我進行深入交流，歡迎隨時聯係我</p>
+                    <div class="w-16 xs:w-20 h-1 bg-primary mx-auto mt-3 xs:mt-4"></div>
+                </div>
+                
+                <!-- 布局：小屏幕上下排列，大屏幕左右排列 -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 xs:gap-12">
+                    <!-- 联系表单：优化输入框大小和间距 -->
+                    <div>
+                        <form id="contact-form" class="bg-gray-50 p-5 xs:p-8 rounded-xl shadow-sm">
+                            <div class="mb-4 xs:mb-6">
+                                <label for="name" class="block text-gray-700 font-medium mb-2 text-sm xs:text-base">姓名</label>
+                                <input type="text" id="name" name="name" class="w-full px-3 xs:px-4 py-2 xs:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-custom" placeholder="请输入您的姓名">
+                            </div>
+                            
+                            <div class="mb-4 xs:mb-6">
+                                <label for="email" class="block text-gray-700 font-medium mb-2 text-sm xs:text-base">郵箱</label>
+                                <input type="email" id="email" name="email" class="w-full px-3 xs:px-4 py-2 xs:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-custom" placeholder="请输入您的邮箱">
+                            </div>
+                            
+                            <div class="mb-4 xs:mb-6">
+                                <label for="subject" class="block text-gray-700 font-medium mb-2 text-sm xs:text-base">主題</label>
+                                <input type="text" id="subject" name="subject" class="w-full px-3 xs:px-4 py-2 xs:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-custom" placeholder="请输入消息主题">
+                            </div>
+                            
+                            <div class="mb-4 xs:mb-6">
+                                <label for="message" class="block text-gray-700 font-medium mb-2 text-sm xs:text-base">訊息</label>
+                                <textarea id="message" name="message" rows="4 xs:rows-5" class="w-full px-3 xs:px-4 py-2 xs:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-custom" placeholder="请输入您的消息内容"></textarea>
+                            </div>
+                            
+                            <button type="submit" class="w-full py-2 xs:py-3 bg-primary hover:bg-primary/90 text-white font-medium rounded-lg shadow hover:shadow-md transition-custom text-sm xs:text-base">
+                                <i class="fa fa-paper-plane mr-1 xs:mr-2"></i>發送訊息
+                            </button>
+                        </form>
+                    </div>
+                    
+                    <!-- 联系信息：优化小屏幕排版 -->
+                    <div class="flex flex-col justify-center">
+                        <div class="space-y-6 xs:space-y-8">
+                            <div>
+                                <h3 class="text-xl xs:text-2xl font-display font-semibold mb-4 xs:mb-6">聯絡方式</h3>
+                                
+                                <div class="space-y-3 xs:space-y-4">
+                                    <div class="flex items-start">
+                                        <div class="bg-primary/10 p-2 xs:p-3 rounded-full text-primary mr-3 xs:mr-4">
+                                            <i class="fa fa-envelope"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="font-medium text-base xs:text-lg">郵箱</h4>
+                                            <p class="text-gray-600 text-sm xs:text-base">tuanduituandui@gmail.com</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="flex items-start">
+                                        <div class="bg-primary/10 p-2 xs:p-3 rounded-full text-primary mr-3 xs:mr-4">
+                                            <i class="fa fa-phone"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="font-medium text-base xs:text-lg">電話</h4>
+                                            <p class="text-gray-600 text-sm xs:text-base">+852 90535020<br class="sm:hidden"> +86 15539371673</p> <!-- 小屏幕换行显示 -->
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="flex items-start">
+                                        <div class="bg-primary/10 p-2 xs:p-3 rounded-full text-primary mr-3 xs:mr-4">
+                                            <i class="fa fa-map-marker"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="font-medium text-base xs:text-lg">地址</h4>
+                                            <p class="text-gray-600 text-sm xs:text-base">8B2, Tower 6, St.Martin, 12 Fo Chun Road, Tai Po</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- 社交媒体：优化小屏幕显示 -->
+                                    <div class="flex items-start">
+                                        <div class="bg-primary/10 p-2 xs:p-3 rounded-full text-primary mr-3 xs:mr-4">
+                                            <i class="fa fa-share-alt"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="font-medium text-base xs:text-lg">社交媒體</h4>
+                                            <div class="flex space-x-3 xs:space-x-4 mt-2">
+                                                <!-- Instagram -->
+                                                <div class="social-item relative">
+                                                    <a href="#" class="text-gray-600 hover:text-primary transition-custom text-lg xs:text-xl">
+                                                        <i class="fa fa-instagram"></i>
+                                                    </a>
+                                                    <div class="social-qrcode">
+                                                        <img src="https://surviving-ivory-64xenselal.edgeone.app/ins.jpg">
+                                                    </div>
+                                                </div>
+                                                
+                                                <!-- WeChat -->
+                                                <div class="social-item relative">
+                                                    <a href="#" class="text-gray-600 hover:text-primary transition-custom text-lg xs:text-xl">
+                                                        <i class="fa fa-weixin"></i>
+                                                    </a>
+                                                    <div class="social-qrcode">
+                                                        <img src="https://mild-purple-7qvxacgq5s.edgeone.app/wechat.jpg">
+                                                    </div>
+                                                </div>
+                                                
+                                                <!-- WhatsApp -->
+                                                <div>
+                                                    <a href="https://wa.me/85290535020" target="_blank" class="text-gray-600 hover:text-primary transition-custom text-lg xs:text-xl">
+                                                        <i class="fa fa-whatsapp"></i>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 页脚：优化响应式布局 -->
+    <footer class="bg-dark text-white py-6 xs:py-10">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-4 md:mb-0 text-center md:text-left">
+                    <h3 class="text-lg xs:text-xl font-display font-bold mb-1 xs:mb-2">姜成卓 (Sam)</h3>
+                    <p class="text-gray-400 text-sm">SAM的個人網站</p>
+                </div>
+                
+                <div class="flex space-x-4 xs:space-x-6">
+                    <!-- Instagram -->
+                    <div class="social-item relative">
+                        <a href="#" class="text-gray-400 hover:text-primary transition-custom">
+                            <i class="fa fa-instagram text-lg xs:text-xl"></i>
+                        </a>
+                        <div class="social-qrcode">
+                            <img src="https://picsum.photos/id/1/200/200" alt="Instagram二维码" class="w-full h-full object-cover">
+                        </div>
+                    </div>
+                    
+                    <!-- WeChat -->
+                    <div class="social-item relative">
+                        <a href="#" class="text-gray-400 hover:text-primary transition-custom">
+                            <i class="fa fa-weixin text-lg xs:text-xl"></i>
+                        </a>
+                        <div class="social-qrcode">
+                            <img src="https://picsum.photos/id/2/200/200" alt="微信二维码" class="w-full h-full object-cover">
+                        </div>
+                    </div>
+                    
+                    <!-- WhatsApp -->
+                    <div>
+                        <a href="https://wa.me/85290535020" target="_blank" class="text-gray-400 hover:text-primary transition-custom">
+                            <i class="fa fa-whatsapp text-lg xs:text-xl"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="border-t border-gray-700 mt-5 xs:mt-8 pt-5 xs:pt-8 text-center text-gray-400">
+                <p class="text-sm">&copy; 2025 姜成卓-Sam. 保留所有權利.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // 导航栏滚动效果：适配不同屏幕的导航栏高度
+        window.addEventListener('scroll', function() {
+            const navbar = document.getElementById('navbar');
+            if (window.scrollY > 30) {
+                navbar.classList.add('bg-dark/95', 'py-2');
+                navbar.classList.remove('bg-dark/80', 'py-3', 'xs:py-2');
+            } else {
+                navbar.classList.add('bg-dark/80', 'py-3', 'xs:py-2');
+                navbar.classList.remove('bg-dark/95', 'py-2');
+            }
+        });
+
+        // 移动端菜单切换
+        document.getElementById('mobile-menu-btn').addEventListener('click', function() {
+            const mobileMenu = document.getElementById('mobile-menu');
+            mobileMenu.classList.toggle('hidden');
+        });
+
+        // 图片放大功能：适配小屏幕模态框
+        const imageModal = document.getElementById('image-modal');
+        const modalImage = document.getElementById('modal-image');
+        const closeModal = document.getElementById('close-modal');
+        
+        document.querySelectorAll('img[data-src]').forEach(img => {
+            img.addEventListener('click', function() {
+                modalImage.src = this.getAttribute('data-src');
+                imageModal.classList.add('active');
+                document.body.style.overflow = 'hidden'; // 防止背景滚动
+            });
+        });
+        
+        closeModal.addEventListener('click', function() {
+            imageModal.classList.remove('active');
+            document.body.style.overflow = '';
+        });
+        
+        imageModal.addEventListener('click', function(e) {
+            if (e.target === imageModal) {
+                imageModal.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+        });
+
+        // 平滑滚动：优化不同屏幕的滚动目标位置
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.getElementById('mobile-menu').classList.add('hidden');
+                
+                const targetId = this.getAttribute('href');
+                const targetElement = document.querySelector(targetId);
+                
+                if (targetElement) {
+                    // 根据屏幕宽度调整滚动偏移量（导航栏高度不同）
+                    const navbarHeight = window.innerWidth < 768 ? 60 : 80;
+                    const targetPosition = targetElement.offsetTop - navbarHeight;
+                    
+                    window.scrollTo({
+                        top: targetPosition,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+
+        // 表单提交处理
+        document.getElementById('contact-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            alert('訊息已發送！感謝你的聯絡。');
+            this.reset();
+        });
+
+        // 查看更多照片按钮
+        document.getElementById('load-more-photos').addEventListener('click', function() {
+            alert('已加載所有相片');
+            this.disabled = true;
+            this.innerHTML = '<i class="fa fa-check mr-2"></i>所有相片已加載';
+            this.classList.add('bg-gray-500');
+            this.classList.remove('bg-primary', 'hover:bg-primary/90');
+        });
+
+        // 初始化页面：确保在不同屏幕尺寸下正确显示
+        window.addEventListener('load', function() {
+            // 强制英雄区全屏显示
+            const heroSection = document.getElementById('home');
+            heroSection.style.minHeight = '100vh';
+            
+            // 触发一次滚动事件，确保导航栏样式正确
+            window.dispatchEvent(new Event('scroll'));
+        });
+
+        // 窗口大小变化时重新调整布局
+        window.addEventListener('resize', function() {
+            // 重新设置英雄区高度
+            const heroSection = document.getElementById('home');
+            heroSection.style.minHeight = '100vh';
+        });
+    </script>
+</body>
+</html>
